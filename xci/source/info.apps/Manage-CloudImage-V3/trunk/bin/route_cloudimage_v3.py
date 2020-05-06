@@ -263,6 +263,7 @@ class HandleLoad():
             nexturl = data["next"]
             results = results + data["results"]
 
+        content = {}
         resources = []
         appenvs = []
         for image in results:
@@ -318,8 +319,8 @@ class HandleLoad():
            resource["Associations"] = ""
              
            resources.append(resource)
-
-        return(resources)
+        content[resource] = resources
+        return(content)
 
     def Read_SQL(self, cursor, sql, localtype):
         try:
@@ -510,62 +511,24 @@ class HandleLoad():
         RA = self.memory['resource_associations']
         self.RESOURCE_CONTYPE = contype
         for item in content[contype]:
-            id_str = str(item['id'])
-            myGLOBALURN = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, id_str)
-            # Convert warehouse last_update JSON string to datetime with timezone
-            # Incoming last_update is a datetime with timezone
-            # Once they are both datetimes with timezone, compare their strings
-            # Can't compare directly because tzinfo have different represenations in Python and Django
-            if not self.args.ignore_dates:
-                try:
-                    cur_dtm = parse_datetime(cur[myGLOBALURN].EntityJSON['last_updated'].replace(' ',''))
-                except:
-                    cur_dtm = datetime.now(timezone.utc)
-                try:
-                    new_dtm = item['last_updated']
-                except:
-                    new_dtm = None
-                if str(cur_dtm) == str(new_dtm):
-                    self.STATS.update({me + '.Skip'})
-                    new[myGLOBALURN] = 'Skipped'        # So that we don't Delete_OLD below
-                    continue
-
-            for field in ['last_updated', 'start_date_time', 'end_date_time']:
-                if field in item and isinstance(item[field], datetime):
-                    item[field] = item[field].strftime('%Y-%m-%dT%H:%M:%S%z')
+            id_str = str(item['LocalID'])
+            #myGLOBALURN = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, id_str)
+            myGLOBALURN = item['ID']
 
             myNEWRELATIONS = {} # The new relations for this item, key=related ID, value=relation type
             try:
-                myProviderID = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', 'provider', str(item['provider']))
+                #myProviderID = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', 'provider', str(item['provider']))
+                myProviderID = item['ProviderID']
             except:
                 myProviderID = None
             else:
                 myNEWRELATIONS[myProviderID] = 'Provided By'
 
             # V2 to V3 type mapping
-            MAPKEY = '{}:{}'.format(item.get('resource_group', ''), item.get('resource_type', ''))
-            (myRESGROUP, myRESTYPE) = self.TYPEMAP.get(MAPKEY, 'Error:Error').split(':')[:2]
-            try:
-                QualityLevel = self.STATUSMAP[str(item['record_status'])]
-            except:
-                QualityLevel = None
-            try:
-                Keywords = ','.join(RTAGS[id_str])
-            except:
-                Keywords = None
-                
-            if myRESTYPE or '' == 'Event': # In case it is None
-                try:
-                    StartDateTime = datetime_standardize(parse_datetime(item['start_date_time']))
-                except:
-                    StartDateTime = None
-                try:
-                    EndDateTime = datetime_standardize(parse_datetime(item['end_date_time']))
-                except:
-                    EndDateTime = None
-            else:
-                StartDateTime = None
-                EndDateTime = None
+            #MAPKEY = '{}:{}'.format(item.get('resource_group', ''), item.get('resource_type', ''))
+            #(myRESGROUP, myRESTYPE) = self.TYPEMAP.get(MAPKEY, 'Error:Error').split(':')[:2]
+            myRESGROUP = 'Software'
+            myRESTYPE = 'CloudImage'
                 
             try:
                 local = ResourceV3Local(
@@ -591,13 +554,13 @@ class HandleLoad():
                             ID = myGLOBALURN,
                             Affiliation = self.Affiliation,
                             LocalID = id_str,
-                            QualityLevel = QualityLevel,
-                            Name = item.get('resource_name', None),
+                            QualityLevel = item.get('QualityLevel', None),
+                            Name = item.get('Name', None),
                             ResourceGroup = myRESGROUP,
-                            Type = myRESTYPE,
+                            Type = item.get('Type', None),
                             ShortDescription = item.get('short_description', None),
                             ProviderID = myProviderID,
-                            Description = item.get('resource_description', None),
+                            Description = item.get('Description', None),
                             Topics = item.get('topics', None),
                             Keywords = Keywords,
                             Audience = self.Affiliation,
@@ -751,7 +714,7 @@ class HandleLoad():
 
                 # Retrieve from SOURCE
                 #content = self.Read_SQL(CURSOR, stepconf['SRCURL'].path, stepconf['LOCALTYPE'])
-                content = self.Retrieve_Cloudimages(stepconf['LOCALTYPE'])
+                content = self.Retrieve_CloudImages(stepconf['LOCALTYPE'])
                 # Content does not have the expected results
                 if stepconf['LOCALTYPE'] not in content:
                     (rc, message) = (False, 'JSON results is missing the \'{}\' element'.format(stepconf['LOCALTYPE']))
@@ -766,7 +729,7 @@ class HandleLoad():
                 pa.FinishActivity(rc, message)
 
             # Not disconnecting from Elasticsearch
-            self.Disconnect_Source(CURSOR)
+            #self.Disconnect_Source(CURSOR)
             break
 
     def log_target(self, me):

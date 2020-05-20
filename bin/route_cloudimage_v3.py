@@ -140,7 +140,7 @@ class HandleLoad():
         # Initialize appliation variables
         self.memory = {}
         self.PROVIDER_URNMAP = self.memory['provider_urnmap'] = {}
-        self.Affiliation = 'uiuc.edu'
+        self.Affiliation = 'xsede.org'
         self.URNPrefix = 'urn:ogf:glue2:'
         self.WAREHOUSE_API_PREFIX = 'http://localhost:8000' if self.args.dev else 'https://info.xsede.org/wh1'
         self.WAREHOUSE_API_VERSION = 'v3'
@@ -194,7 +194,8 @@ class HandleLoad():
             stepconf['SOURCEURL'] = myCAT['CatalogAPIURL']
             
             try:
-                SRCURL = urlparse(stepconf['SOURCEURL'])
+                #SRCURL = urlparse(stepconf['SOURCEURL'])
+                SRCURL = urlparse("sql:SELECT * FROM resource")
             except:
                 self.logger.error('Step SOURCE is missing or invalid')
                 sys.exit(1)
@@ -252,7 +253,7 @@ class HandleLoad():
         newargs[0] = newargs[0].rstrip(':')
         return(':'.join(newargs))
 
-    def Retrieve_CloudImages(self):
+    def Retrieve_CloudImages(self, localtype):
         import urllib.request, json 
         
         results = []
@@ -269,7 +270,7 @@ class HandleLoad():
         for image in results:
            resource={}
            resource["ID"] = "urn:glue2:CloudImage:uuid:jetstream.xsede.org:"+image["uuid"]
-           resource["CreationTime"] = datetime.now(utc)
+           resource["CreationTime"] = datetime.now(timezone.utc).isoformat()
            resource["Affiliation"] = "xsede.org"
            resource["LocalID"] = image["id"]
            resource["LocalURL"] = image["url"]
@@ -319,7 +320,7 @@ class HandleLoad():
            resource["Associations"] = ""
              
            resources.append(resource)
-        content[resource] = resources
+        content["resource"] = resources
         return(content)
 
     def Read_SQL(self, cursor, sql, localtype):
@@ -440,7 +441,7 @@ class HandleLoad():
             try:
                 local = ResourceV3Local(
                             ID = myGLOBALURN,
-                            CreationTime = datetime.now(timezone.utc),
+                            CreationTime = datetime.now(timezone.utc).isoformat(),
                             Validity = self.DefaultValidity,
                             Affiliation = self.Affiliation,
                             LocalID = id_str,
@@ -473,7 +474,7 @@ class HandleLoad():
                             Audience = self.Affiliation,
                      )
                 resource.save()
-                resource.indexing()
+                #resource.indexing()
             except Exception as e:
                 msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
                 self.logger.error(msg)
@@ -507,8 +508,8 @@ class HandleLoad():
         for item in ResourceV3Local.objects.filter(Affiliation__exact=self.Affiliation).filter(LocalType__exact=contype):
             cur[item.ID] = item
             
-        RTAGS = self.memory['resource_tags']
-        RA = self.memory['resource_associations']
+        #RTAGS = self.memory['resource_tags']
+        #RA = self.memory['resource_associations']
         self.RESOURCE_CONTYPE = contype
         for item in content[contype]:
             id_str = str(item['LocalID'])
@@ -562,23 +563,23 @@ class HandleLoad():
                             ProviderID = myProviderID,
                             Description = item.get('Description', None),
                             Topics = item.get('topics', None),
-                            Keywords = Keywords,
+                            Keywords = item.get('Keywords', None),
+                            StartDateTime = item.get('StartDateTime', None),
+                            EndDateTime = item.get('EndDateTime', None),
                             Audience = self.Affiliation,
-                            StartDateTime = StartDateTime,
-                            EndDateTime = EndDateTime,
                     )
                 resource.save()
-                resource.indexing()
+                #resource.indexing()
             except Exception as e:
                 msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
                 self.logger.error(msg)
                 return(False, msg)
 
-            if id_str in RA:
-                for assoc_id in RA[id_str]:
-                    relatedID = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, assoc_id)
-                    myNEWRELATIONS[relatedID] = 'Resource Association'
-            self.Update_REL(myGLOBALURN, myNEWRELATIONS)
+            #if id_str in RA:
+            #    for assoc_id in RA[id_str]:
+            #        relatedID = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, assoc_id)
+            #        myNEWRELATIONS[relatedID] = 'Resource Association'
+            #self.Update_REL(myGLOBALURN, myNEWRELATIONS)
 
             self.STATS.update({me + '.Update'})
             self.logger.debug('{} updated ID={}'.format(contype, myGLOBALURN))
@@ -647,7 +648,7 @@ class HandleLoad():
                             Audience = self.Affiliation,
                     )
                 resource.save()
-                resource.indexing()
+                #resource.indexing()
             except Exception as e:
                 msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
                 self.logger.error(msg)

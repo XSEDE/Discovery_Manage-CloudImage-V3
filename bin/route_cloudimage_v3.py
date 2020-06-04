@@ -275,7 +275,7 @@ class HandleLoad():
            resource["LocalID"] = image["id"]
            resource["LocalURL"] = image["url"]
            resource["Name"] = image["name"]
-           if len(image["description"]) < 1000:
+           if len(image["description"]) < 500:
               resource["ShortDescription"] = image["description"]
               resource["Description"] = ""
            else:
@@ -565,7 +565,7 @@ class HandleLoad():
                             Name = item.get('Name', None),
                             ResourceGroup = myRESGROUP,
                             Type = item.get('Type', None),
-                            ShortDescription = item.get('short_description', None),
+                            ShortDescription = item.get('ShortDescription', None),
                             ProviderID = myProviderID,
                             Description = item.get('Description', None),
                             Topics = item.get('topics', None),

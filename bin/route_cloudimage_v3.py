@@ -275,10 +275,10 @@ class HandleLoad():
            resource["LocalID"] = image["id"]
            resource["LocalURL"] = image["url"]
            resource["Name"] = image["name"]
-           if len(description)<1000
+           if len(image["description"]) < 1000:
               resource["ShortDescription"] = image["description"]
               resource["Description"] = ""
-           else
+           else:
               resource["ShortDescription"] = image["description"].split("\n",2)[0]
               resource["Description" ] = image["description"]
            image['record_status'] = 1
@@ -325,7 +325,7 @@ class HandleLoad():
            resource["Associations"] = ""
              
            resources.append(resource)
-        content["resource"] = resources
+        content[localtype] = resources
         return(content)
 
     def Read_SQL(self, cursor, sql, localtype):

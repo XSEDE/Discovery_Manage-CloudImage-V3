@@ -1,0 +1,18 @@
+{
+    "DEBUG": true,
+    "SOURCE_URL": "postgresql://localhost:5432/warehouse",
+    "SOURCE_DBUSER": "cloudimage",
+    "SOURCE_DBPASS": "",
+    "DESTINATION": "warehouse:",
+    "ELASTIC_HOSTS": ["localhost:9200"],
+    "LOG_LEVEL": "info",
+    "LOG_FILE": "/soft/warehouse-apps-1.0/Manage-CloudImage-V3/var/route_cloudimage_log.log",
+    "STEPS": [
+        {   "LOCALTYPE": "resource",
+            "CATALOGURN": "urn:ogf:glue2:info.xsede.org:catalog:cloudimage:resource",
+            "DESTINATION": "function:Warehouse_Resources",
+            "SOURCEDEFAULTURL": "https://use.jetstream-cloud.org/application/images/",
+            "URNPREFIX": "urn:ogf:glue2:cloudimages:resource:resources:"
+        }
+    ]
+}

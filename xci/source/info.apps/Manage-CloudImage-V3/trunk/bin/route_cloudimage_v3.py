@@ -269,17 +269,22 @@ class HandleLoad():
         appenvs = []
         for image in results:
            resource={}
-           resource["ID"] = "urn:glue2:CloudImage:uuid:jetstream.xsede.org:"+image["uuid"]
+           resource["ID"] = "urn:ogf:glue2:info.xsede.org:resource:CloudImage:uuid:jetstream.xsede.org:"+image["uuid"]
            resource["CreationTime"] = datetime.now(timezone.utc).isoformat()
            resource["Affiliation"] = "xsede.org"
            resource["LocalID"] = image["id"]
            resource["LocalURL"] = image["url"]
            resource["Name"] = image["name"]
-           resource["Description" ] = image["description"]
+           if len(description)<1000
+              resource["ShortDescription"] = image["description"]
+              resource["Description"] = ""
+           else
+              resource["ShortDescription"] = image["description"].split("\n",2)[0]
+              resource["Description" ] = image["description"]
            image['record_status'] = 1
            resource["EntityJson"] = image
-           resource["Type"] = "CloudImage"
-           resource["QualityLevel"] = "production"
+           resource["Type"] = "Cloud Image"
+           resource["QualityLevel"] = "Production"
            resource["ProviderID"] = "urn:glue2:GlobalResourceProvider:HPC_Provider:iu.xsede.org"
            tag_keywords = ""
            try:
@@ -437,7 +442,7 @@ class HandleLoad():
             
         for item in content[contype]:
             id_str = str(item['id'])       # From number
-            myGLOBALURN = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, id_str)
+            myGLOBALURN = self.format_GLOBALURN(self.URNPrefix, 'info.xsede.org', contype, id_str)
             try:
                 local = ResourceV3Local(
                             ID = myGLOBALURN,
@@ -529,7 +534,7 @@ class HandleLoad():
             #MAPKEY = '{}:{}'.format(item.get('resource_group', ''), item.get('resource_type', ''))
             #(myRESGROUP, myRESTYPE) = self.TYPEMAP.get(MAPKEY, 'Error:Error').split(':')[:2]
             myRESGROUP = 'Software'
-            myRESTYPE = 'CloudImage'
+            myRESTYPE = 'Cloud Image'
                 
             try:
                 local = ResourceV3Local(
@@ -539,7 +544,8 @@ class HandleLoad():
                             Affiliation = self.Affiliation,
                             LocalID = id_str,
                             LocalType = contype,
-                            LocalURL = config.get('SOURCEDEFAULTURL', None),
+                            #LocalURL = config.get('SOURCEDEFAULTURL', None),
+                            LocalURL = config.get('SOURCEDEFAULTURL', None)+"LocalID",
                             CatalogMetaURL = self.CATALOGURN_to_URL(config['CATALOGURN']),
                             EntityJSON = item,
                     )
@@ -579,7 +585,8 @@ class HandleLoad():
             #    for assoc_id in RA[id_str]:
             #        relatedID = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, assoc_id)
             #        myNEWRELATIONS[relatedID] = 'Resource Association'
-            #self.Update_REL(myGLOBALURN, myNEWRELATIONS)
+
+            self.Update_REL(myGLOBALURN, myNEWRELATIONS)
 
             self.STATS.update({me + '.Update'})
             self.logger.debug('{} updated ID={}'.format(contype, myGLOBALURN))
@@ -590,85 +597,6 @@ class HandleLoad():
         self.log_target(me)
         return(True, '')
 
-    def Warehouse_Guides(self, content, contype, config):
-        start_utc = datetime.now(timezone.utc)
-        myRESGROUP = 'Guides'
-#       Each item has its own TYPE set inside the loop below
-#        myRESTYPE = 'Provider'
-        me = '{} to {}({}:{})'.format(sys._getframe().f_code.co_name, self.WAREHOUSE_CATALOG, myRESGROUP, '*')
-        self.PROCESSING_SECONDS[me] = getattr(self.PROCESSING_SECONDS, me, 0)
-
-        GR = self.memory['guide_resources']
-        cur = {}   # Current items in database
-        new = {}   # New/updated items
-        for item in ResourceV3Local.objects.filter(Affiliation__exact = self.Affiliation).filter(LocalType__exact = contype):
-            cur[item.ID] = item
-        
-        for item in content[contype]:
-            id_str = str(item['id'])       # From number
-            myGLOBALURN = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, id_str)
-            if 'created_at' in item and isinstance(item['created_at'], datetime):
-                item['created_at'] = item['created_at'].strftime('%Y-%m-%dT%H:%M:%S%z')
-            if 'updated_at' in item and isinstance(item['updated_at'], datetime):
-                item['updated_at'] = item['updated_at'].strftime('%Y-%m-%dT%H:%M:%S%z')
-            myRESTYPE = self.TITLEMAP.get(item['title'], '')
-            try:
-                local = ResourceV3Local(
-                            ID = myGLOBALURN,
-                            CreationTime = datetime.now(timezone.utc),
-                            Validity = self.DefaultValidity,
-                            Affiliation = self.Affiliation,
-                            LocalID = id_str,
-                            LocalType = contype,
-                            LocalURL = config.get('SOURCEDEFAULTURL', None),
-                            CatalogMetaURL = self.CATALOGURN_to_URL(config['CATALOGURN']),
-                            EntityJSON = item,
-                    )
-                local.save()
-            except Exception as e:
-                msg = '{} saving local ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
-                self.logger.error(msg)
-                return(False, msg)
-            new[myGLOBALURN] = local
-
-            try:
-                resource = ResourceV3(
-                            ID = myGLOBALURN,
-                            Affiliation = self.Affiliation,
-                            LocalID = id_str,
-                            QualityLevel = self.STATUSMAP.get(item.get('publish_status', '1'), 'Production'),
-                            Name = myRESTYPE,
-                            ResourceGroup = myRESGROUP,
-                            Type = myRESTYPE,
-                            ShortDescription = item['lede'],
-                            ProviderID = None,
-                            Description = item.get('component_data',''),
-                            Topics = None,
-                            Keywords = None,
-                            Audience = self.Affiliation,
-                    )
-                resource.save()
-                #resource.indexing()
-            except Exception as e:
-                msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
-                self.logger.error(msg)
-                return(False, msg)
-
-            myNEWRELATIONS = {} # The new relations for this item, key=related ID, value=relation type
-            if id_str in GR:
-                for assoc_id in GR[id_str]:
-                    myRESOURCEURN = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', self.RESOURCE_CONTYPE, assoc_id)
-                    myNEWRELATIONS[myRESOURCEURN] = 'Guide Resource'
-            self.Update_REL(myGLOBALURN, myNEWRELATIONS)
-
-            self.STATS.update({me + '.Update'})
-            self.logger.debug('Guide save ID={}'.format(myGLOBALURN))
-
-        self.Delete_OLD(me, cur, new)
-
-        self.PROCESSING_SECONDS[me] += (datetime.now(timezone.utc) - start_utc).total_seconds()
-        self.log_target(me)
-        return(True, '')
 
     def SaveDaemonLog(self, path):
         # Save daemon log file using timestamp only if it has anything unexpected in it

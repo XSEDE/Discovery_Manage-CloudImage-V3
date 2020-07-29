@@ -530,6 +530,9 @@ class HandleLoad():
             else:
                 myNEWRELATIONS[myProviderID] = 'Provided By'
 
+                myNEWRELATIONS["https://info.xsede.org/wh1/xcsr-db/v1/supportcontacts/globalid/helpdesk.xsede.org/"] = 'Supported By'
+                myNEWRELATIONS[myProviderID] = 'Hosted By'
+
             # V2 to V3 type mapping
             #MAPKEY = '{}:{}'.format(item.get('resource_group', ''), item.get('resource_type', ''))
             #(myRESGROUP, myRESTYPE) = self.TYPEMAP.get(MAPKEY, 'Error:Error').split(':')[:2]

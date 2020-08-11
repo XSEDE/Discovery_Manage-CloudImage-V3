@@ -479,7 +479,7 @@ class HandleLoad():
                             Audience = self.Affiliation,
                      )
                 resource.save()
-                #resource.indexing()
+                resource.indexing()
             except Exception as e:
                 msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
                 self.logger.error(msg)
@@ -578,7 +578,7 @@ class HandleLoad():
                             Audience = self.Affiliation,
                     )
                 resource.save()
-                #resource.indexing()
+                resource.indexing()
             except Exception as e:
                 msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
                 self.logger.error(msg)

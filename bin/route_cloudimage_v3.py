@@ -288,8 +288,10 @@ class HandleLoad():
            resource["ProviderID"] = "urn:glue2:GlobalResourceProvider:HPC_Provider:iu.xsede.org"
            tag_keywords = ""
            try:
+             delimiter = ""
              for tag in image["tags"]:
-               tag_keywords += " "+tag["name"]
+               tag_keywords += delimiter+tag["name"]
+               delimiter = " "
            except:
                tag_keywords = None
 
@@ -316,7 +318,7 @@ class HandleLoad():
              for assoc in res_associations:
                associations += ","+assoc
            except:
-               assoc = None
+               associations = None
           #We're just not adding associations at present
            #if len(associations) > 999:
              #resource["Associations"] = "Too Many Associations"

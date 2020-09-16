@@ -285,7 +285,7 @@ class HandleLoad():
            resource["EntityJson"] = image
            resource["Type"] = "Cloud Image"
            resource["QualityLevel"] = "Production"
-           resource["ProviderID"] = "urn:glue2:GlobalResourceProvider:HPC_Provider:iu.xsede.org"
+           resource["ProviderID"] = "urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.providers:drupalnodeid:2939"
            tag_keywords = ""
            try:
              delimiter = ""

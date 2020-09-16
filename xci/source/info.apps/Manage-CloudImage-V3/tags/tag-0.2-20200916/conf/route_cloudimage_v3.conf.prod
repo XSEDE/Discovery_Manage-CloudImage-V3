@@ -1,0 +1,17 @@
+{
+    "DEBUG": true,
+    "SOURCE_URL": "postgresql://researchitportaldb-phase2.ce5fgkrr4ft3.us-east-2.rds.amazonaws.com:5432/researchItPortalDBprod",
+    "SOURCE_DBUSER": "<CONFIGURE>",
+    "SOURCE_DBPASS": "<CONFIGURE>",
+    "DESTINATION": "warehouse:",
+    "ELASTIC_HOSTS": ["https://vpc-information-warehouse-test7-an2g46x6mo5puultw7yiypgahq.us-east-2.es.amazonaws.com:443/"],
+    "LOG_LEVEL": "info",
+    "LOG_FILE": "/soft/warehouse-apps-1.0/Manage-CloudImage-V3/var/route_cloudimage_log.log",
+    "STEPS": [
+        {   "LOCALTYPE": "resource",
+            "CATALOGURN": "urn:ogf:glue2:info.xsede.org:catalog:cloudimage.edu:resource",
+            "DESTINATION": "function:Warehouse_Resources",
+            "URNPREFIX": "urn:ogf:glue2:cloudimages:resource:resources:"
+        }
+    ]
+}

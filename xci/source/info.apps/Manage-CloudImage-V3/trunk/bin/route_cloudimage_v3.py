@@ -152,32 +152,6 @@ class HandleLoad():
             self.CATALOGS[cat.ID] = model_to_dict(cat)
 
         self.DefaultValidity = timedelta(days = 14)
-        self.STATUSMAP = {
-                '4': 'Planned',
-                '3': 'Pre-production',
-                '2': 'Decommissioned',
-                '1': 'Production',
-            }
-        # https://docs.google.com/spreadsheets/d/1UbOy3FTEBQFFTCfaXNnh-6PASPCyxsOu2vrRledAkOg
-        # V2 to V3 type mapping
-        self.TYPEMAP = {
-                'resource_group_events:Event': 'Live Events:Event',
-                'resource_group_online_training:StreamingResource': 'Streamed Events:Training',
-                'resource_group_tools_and_services:BackupAndStorage': 'Streamed Events:Backup and Storage',
-                'resource_group_tools_and_services:ConsultingAndSupport': 'Organizations:Consulting and Support',
-                'resource_group_tools_and_services:Data': 'Data Resources:Data',
-                'resource_group_tools_and_services:Instrument': 'Computing Tools and Services:Backup and Storage',
-                'resource_group_tools_and_services:NetworkingAndSecurity': 'Computing Tools and Services:Networking and Security',
-                'resource_group_tools_and_services:Programming': 'Computing Tools and Services:Programming',
-                'resource_group_tools_and_services:ResearchComputing': 'Computing Tools and Services:Research Computing',
-                'resource_group_tools_and_services:Software': 'Software:Software',
-                'resource_group_tools_and_services:WebPublishingAndCommunication': 'Computing Tools and Services:Web Publishing and Communications',
-            }
-        self.TITLEMAP = {
-                'Research Computing': 'Research Computing',
-                'Web Hosting and Publishing': 'Web Publishing and Communications',
-                'Data Resources': 'Data',
-            }
 
         self.STEPS = []
         for stepconf in self.config['STEPS']:
@@ -535,9 +509,6 @@ class HandleLoad():
                 myNEWRELATIONS["https://info.xsede.org/wh1/xcsr-db/v1/supportcontacts/globalid/helpdesk.xsede.org/"] = 'Supported By'
                 myNEWRELATIONS[myProviderID] = 'Hosted By'
 
-            # V2 to V3 type mapping
-            #MAPKEY = '{}:{}'.format(item.get('resource_group', ''), item.get('resource_type', ''))
-            #(myRESGROUP, myRESTYPE) = self.TYPEMAP.get(MAPKEY, 'Error:Error').split(':')[:2]
             myRESGROUP = 'Software'
             myRESTYPE = 'Cloud Image'
                 

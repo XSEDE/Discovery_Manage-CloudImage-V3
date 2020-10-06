@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-# Copy UIUC resources information from a source (database) to the destination (warehouse)
+# Copy Jetstream cloud image information from a source (API) to the destination (warehouse)
 import argparse
 from collections import Counter
+import copy
 import datetime
 from datetime import datetime, timezone, tzinfo, timedelta
 from hashlib import md5
@@ -60,8 +61,8 @@ class HandleLoad():
                             help='Ignore dates and force full resource refresh')
         parser.add_argument('-l', '--log', action='store', \
                             help='Logging level override to config (default=warning)')
-        parser.add_argument('-c', '--config', action='store', default='./route_uiuc.conf', \
-                            help='Configuration file default=./route_uiuc.conf')
+        parser.add_argument('-c', '--config', action='store', default='./route_cloudimage_v3.conf', \
+                            help='Configuration file default=./route_cloudimage_v3.conf')
         parser.add_argument('--verbose', action='store_true', \
                             help='Verbose output')
         parser.add_argument('--dev', action='store_true', \
@@ -227,7 +228,7 @@ class HandleLoad():
         newargs[0] = newargs[0].rstrip(':')
         return(':'.join(newargs))
 
-    def Retrieve_CloudImages(self, localtype):
+    def Retrieve_CloudImages(self, localtype, config):
         import urllib.request, json 
         
         results = []
@@ -243,7 +244,8 @@ class HandleLoad():
         appenvs = []
         for image in results:
            resource={}
-           resource["ID"] = "urn:ogf:glue2:info.xsede.org:resource:CloudImage:uuid:jetstream.xsede.org:"+image["uuid"]
+           resource["ID"] = self.format_GLOBALURN(config['URNPREFIX'], image["uuid"])
+           resource["EntityJSON"] = copy.copy(image)
            resource["CreationTime"] = datetime.now(timezone.utc).isoformat()
            resource["Affiliation"] = "xsede.org"
            resource["LocalID"] = image["id"]
@@ -255,8 +257,6 @@ class HandleLoad():
            else:
               resource["ShortDescription"] = image["description"].split("\n",2)[0]
               resource["Description" ] = image["description"]
-           image['record_status'] = 1
-           resource["EntityJson"] = image
            resource["Type"] = "Cloud Image"
            resource["QualityLevel"] = "Production"
            resource["ProviderID"] = "urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.providers:drupalnodeid:2939"
@@ -317,49 +317,6 @@ class HandleLoad():
             DATA.append(dict(zip(COLS, row)))
         return({localtype: DATA})
 
-    def Memory_Tags(self, content, localtype, config):
-        TAGS = self.memory['tags'] = {}
-        for rowdict in content[localtype]:
-            TAGS[str(rowdict['id'])] = rowdict['label']
-        return(True, '')
-        
-    def Memory_Resource_Tags(self, content, localtype, config):
-        TAGS = self.memory['tags']
-        RTAGS = self.memory['resource_tags'] = {}
-        for rowdict in content[localtype]:
-            id = str(rowdict['id'])
-            if id not in RTAGS:
-                RTAGS[id] = []
-            try:
-                RTAGS[id].append(TAGS[str(rowdict['tag_id'])])
-            except:
-                pass
-        return(True, '')
-
-    def Memory_Resource_Associations(self, content, localtype, config):
-        RA = self.memory['resource_associations'] = {}
-        for rowdict in content[localtype]:
-            try:
-                resource_id = str(rowdict['resource_id'])
-                if resource_id not in RA:
-                    RA[resource_id] = []
-                RA[resource_id].append(str(rowdict['associated_resource_id']))
-            except:
-                pass
-        return(True, '')
-
-    def Memory_Guide_Resources(self, content, localtype, config):
-        GR = self.memory['guide_resources'] = {}
-        for rowdict in content[localtype]:
-            try:
-                guide_id = str(rowdict['curated_guide_id'])
-                if guide_id not in GR:
-                    GR[guide_id] = []
-                GR[guide_id].append(str(rowdict['resource_id']))
-            except:
-                pass
-        return(True, '')
-
     #
     # Delete old items (those in 'cur') that weren't updated (those in 'new')
     #
@@ -404,113 +361,39 @@ class HandleLoad():
         except Exception as e:
             self.logger.error('{} deleting Relations for Resource ID={}: {}'.format(type(e).__name__, myURN, e))
 
-    def Warehouse_Providers(self, content, contype, config):
-        start_utc = datetime.now(timezone.utc)
-        myRESGROUP = 'Organizations'
-        myRESTYPE = 'Provider'
-        me = '{} to {}({}:{})'.format(sys._getframe().f_code.co_name, self.WAREHOUSE_CATALOG, myRESGROUP, myRESTYPE)
-        self.PROCESSING_SECONDS[me] = getattr(self.PROCESSING_SECONDS, me, 0)
-        
-        cur = {}   # Current items in database
-        new = {}   # New/updated items
-        for item in ResourceV3Local.objects.filter(Affiliation__exact = self.Affiliation).filter(LocalType__exact = contype):
-            cur[item.ID] = item
-            
-        for item in content[contype]:
-            id_str = str(item['id'])       # From number
-            myGLOBALURN = self.format_GLOBALURN(self.URNPrefix, 'info.xsede.org', contype, id_str)
-            try:
-                local = ResourceV3Local(
-                            ID = myGLOBALURN,
-                            CreationTime = datetime.now(timezone.utc).isoformat(),
-                            Validity = self.DefaultValidity,
-                            Affiliation = self.Affiliation,
-                            LocalID = id_str,
-                            LocalType = contype,
-                            LocalURL = config.get('SOURCEDEFAULTURL', None),
-                            CatalogMetaURL = self.CATALOGURN_to_URL(config['CATALOGURN']),
-                            EntityJSON = item,
-                    )
-                local.save()
-            except Exception as e:
-                msg = '{} saving local ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
-                self.logger.error(msg)
-                return(False, msg)
-            new[myGLOBALURN] = local
-
-            try:
-                resource = ResourceV3(
-                            ID = myGLOBALURN,
-                            Affiliation = self.Affiliation,
-                            LocalID = id_str,
-                            QualityLevel = 'Production',
-                            Name = item['name'],
-                            ResourceGroup = myRESGROUP,
-                            Type = myRESTYPE,
-                            ShortDescription = None,
-                            ProviderID = None,
-                            Description = None,
-                            Topics = None,
-                            Keywords = None,
-                            Audience = self.Affiliation,
-                     )
-                resource.save()
-                resource.indexing()
-            except Exception as e:
-                msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
-                self.logger.error(msg)
-                return(False, msg)
-                
-            myNEWRELATIONS = {} # The new relations for this item, key=related ID, value=relation type
-            if item.get('parent_provider'):
-                parentURN = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, str(item['parent_provider']))
-                myNEWRELATIONS[parentURN] = 'Provided By'
-            self.Update_REL(myGLOBALURN, myNEWRELATIONS)
-            
-            self.STATS.update({me + '.Update'})
-            self.logger.debug('Provider save ID={}'.format(myGLOBALURN))
-
-        self.Delete_OLD(me, cur, new)
-
-        self.PROCESSING_SECONDS[me] += (datetime.now(timezone.utc) - start_utc).total_seconds()
-        self.log_target(me)
-        return(True, '')
-
     def Warehouse_Resources(self, content, contype, config):
         start_utc = datetime.now(timezone.utc)
-#       Each item has its own GROUP and TYPE set inside the loop below
-#        myRESGROUP = 'Organizations'
-#        myRESTYPE = 'Provider'
+        myRESGROUP = 'Software'
+        myRESTYPE = 'Cloud Image'
         me = '{} to {}({}:{})'.format(sys._getframe().f_code.co_name, self.WAREHOUSE_CATALOG, '*', '*')
         self.PROCESSING_SECONDS[me] = getattr(self.PROCESSING_SECONDS, me, 0)
 
         cur = {}   # Current items in database
         new = {}   # New/updated items
-        for item in ResourceV3Local.objects.filter(Affiliation__exact=self.Affiliation).filter(LocalType__exact=contype):
+        for item in ResourceV3Local.objects.filter(Affiliation__exact=self.Affiliation).filter(ID__startswith=config['URNPREFIX']):
             cur[item.ID] = item
             
-        #RTAGS = self.memory['resource_tags']
-        #RA = self.memory['resource_associations']
         self.RESOURCE_CONTYPE = contype
         for item in content[contype]:
             id_str = str(item['LocalID'])
-            #myGLOBALURN = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, id_str)
             myGLOBALURN = item['ID']
 
+            LocalURL = item.get('LocalURL')
+            if not LocalURL:
+                LocalURL = config.get('SOURCEDEFAULTURL')
+                if LocalURL:
+                    LocalURL += id_str       # SOURCEDEFAULTURL is a prefix that the ID can be appended to
+                
             myNEWRELATIONS = {} # The new relations for this item, key=related ID, value=relation type
-            try:
-                #myProviderID = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', 'provider', str(item['provider']))
-                myProviderID = item['ProviderID']
-            except:
-                myProviderID = None
-            else:
+            myProviderID = item.get('ProviderID')
+            if myProviderID:
                 myNEWRELATIONS[myProviderID] = 'Provided By'
 
-                myNEWRELATIONS["https://info.xsede.org/wh1/xcsr-db/v1/supportcontacts/globalid/helpdesk.xsede.org/"] = 'Supported By'
-                myNEWRELATIONS[myProviderID] = 'Hosted By'
-
-            myRESGROUP = 'Software'
-            myRESTYPE = 'Cloud Image'
+            mySupportID = 'urn:ogf:glue2:info.xsede.org:resource:rsp:support.organizations:drupalnodeid:1553'
+            myNEWRELATIONS[mySupportID] = 'Supported By'
+            
+            myHostedID = 'urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.resources:drupalnodeid:999'
+            myNEWRELATIONS[myHostedID] = 'Hosted On'
                 
             try:
                 local = ResourceV3Local(
@@ -520,10 +403,9 @@ class HandleLoad():
                             Affiliation = self.Affiliation,
                             LocalID = id_str,
                             LocalType = contype,
-                            #LocalURL = config.get('SOURCEDEFAULTURL', None),
-                            LocalURL = config.get('SOURCEDEFAULTURL', None)+"LocalID",
+                            LocalURL = LocalURL,
                             CatalogMetaURL = self.CATALOGURN_to_URL(config['CATALOGURN']),
-                            EntityJSON = item,
+                            EntityJSON = item['EntityJSON'],
                     )
                 local.save()
             except Exception as e:
@@ -556,11 +438,6 @@ class HandleLoad():
                 msg = '{} saving ID={}: {}'.format(type(e).__name__, myGLOBALURN, e)
                 self.logger.error(msg)
                 return(False, msg)
-
-            #if id_str in RA:
-            #    for assoc_id in RA[id_str]:
-            #        relatedID = self.format_GLOBALURN(self.URNPrefix, 'uiuc.edu', contype, assoc_id)
-            #        myNEWRELATIONS[relatedID] = 'Resource Association'
 
             self.Update_REL(myGLOBALURN, myNEWRELATIONS)
 
@@ -619,7 +496,7 @@ class HandleLoad():
 
                 # Retrieve from SOURCE
                 #content = self.Read_SQL(CURSOR, stepconf['SRCURL'].path, stepconf['LOCALTYPE'])
-                content = self.Retrieve_CloudImages(stepconf['LOCALTYPE'])
+                content = self.Retrieve_CloudImages(stepconf['LOCALTYPE'], stepconf)
                 # Content does not have the expected results
                 if stepconf['LOCALTYPE'] not in content:
                     (rc, message) = (False, 'JSON results is missing the \'{}\' element'.format(stepconf['LOCALTYPE']))

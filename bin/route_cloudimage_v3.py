@@ -365,7 +365,7 @@ class HandleLoad():
         start_utc = datetime.now(timezone.utc)
         myRESGROUP = 'Software'
         myRESTYPE = 'Cloud Image'
-        me = '{} to {}({}:{})'.format(sys._getframe().f_code.co_name, self.WAREHOUSE_CATALOG, '*', '*')
+        me = '{} to {}({}:{})'.format(sys._getframe().f_code.co_name, self.WAREHOUSE_CATALOG, myRESGROUP, myRESTYPE)
         self.PROCESSING_SECONDS[me] = getattr(self.PROCESSING_SECONDS, me, 0)
 
         cur = {}   # Current items in database

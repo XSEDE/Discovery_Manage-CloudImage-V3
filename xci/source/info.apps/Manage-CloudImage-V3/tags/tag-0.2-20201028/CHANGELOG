@@ -1,0 +1,15 @@
+tag-0.2-20201007 JP
+tag-0.2-20201006 JP
+tag-0.2-20200923 JP
+  - https://software.xsede.org/display/xci-781
+  - Adjust ID per convention: lower case, no "uuid:", order=prefix:origin(jetstream.xsede.org):type(openstack.image):<unique_local_id>
+  - Use the 'url' returned by the API in ResourceV3Local.LocalURL
+  - Set ResourceV3Local.CatalogMetaURL to urn:ogf:glue2:info.xsede.org:catalog:jetstream.xsede.org:openstack.images
+  - Set ResourceV3Local.EntityJSON to the original un-modified OpenStack JSON for the image
+  - Add Relation 'Provided By' to ProviderID
+  - Rename Relation 'Hosted By' to 'Hosted On'
+  - Set Relation 'Supported By' to urn:ogf:glue2:info.xsede.org:resource:rsp:support.organizations:drupalnodeid:1553
+  - Remove cruft code that isn't used
+  - Fix new ID constructions to use URNPREFIX
+  - Fix current resource retrieve filter to use URNPREFIX
+  - Fixed serval invalid UIUC references

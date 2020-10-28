@@ -253,9 +253,9 @@ class HandleLoad():
            resource["Name"] = image["name"]
            if len(image["description"]) < 500:
               resource["ShortDescription"] = image["description"]
-              resource["Description"] = ""
+              resource["Description"] = image["description"]
            else:
-              resource["ShortDescription"] = image["description"].split("\n",2)[0]
+              resource["ShortDescription"] = image["description"].split('\n',2)[0]
               resource["Description" ] = image["description"]
            resource["Type"] = "Cloud Image"
            resource["QualityLevel"] = "Production"
@@ -415,6 +415,11 @@ class HandleLoad():
             new[myGLOBALURN] = local
                 
             try:
+                Description = item.get('Description','')
+                Description += '\nView this image in Jetstream Atmosphere: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID',''))
+                Description += '\nDiscover more images using Jetstream Atmosphere: https://use.jetstream-cloud.org/application/images/search'
+                Description += '\nJetstream Getting Started Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide'
+                Description += '\nIntroduction to Jetstream Workshop: https://cvw.cac.cornell.edu/jetstream/'
                 resource = ResourceV3(
                             ID = myGLOBALURN,
                             Affiliation = self.Affiliation,
@@ -425,7 +430,7 @@ class HandleLoad():
                             Type = item.get('Type', None),
                             ShortDescription = item.get('ShortDescription', None),
                             ProviderID = myProviderID,
-                            Description = item.get('Description', None),
+                            Description = Description,
                             Topics = item.get('topics', None),
                             Keywords = item.get('Keywords', None),
                             StartDateTime = item.get('StartDateTime', None),

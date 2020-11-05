@@ -243,64 +243,62 @@ class HandleLoad():
         resources = []
         appenvs = []
         for image in results:
-           resource={}
-           resource["ID"] = self.format_GLOBALURN(config['URNPREFIX'], image["uuid"])
-           resource["EntityJSON"] = copy.copy(image)
-           resource["CreationTime"] = datetime.now(timezone.utc).isoformat()
-           resource["Affiliation"] = "xsede.org"
-           resource["LocalID"] = image["id"]
-           resource["LocalURL"] = image["url"]
-           resource["Name"] = image["name"]
-           if len(image["description"]) < 500:
-              resource["ShortDescription"] = image["description"]
-              resource["Description"] = image["description"]
-           else:
-              resource["ShortDescription"] = image["description"].split('\n',2)[0]
-              resource["Description" ] = image["description"]
-           resource["Type"] = "Cloud Image"
-           resource["QualityLevel"] = "Production"
-           resource["ProviderID"] = "urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.providers:drupalnodeid:2939"
-           tag_keywords = ""
-           try:
-             delimiter = ""
-             for tag in image["tags"]:
-               tag_keywords += delimiter+tag["name"]
-               delimiter = " "
-           except:
-               tag_keywords = None
+            if image.get('description','').startswith('Imported Application -'):
+                continue
+            resource={}
+            resource["ID"] = self.format_GLOBALURN(config['URNPREFIX'], image["uuid"])
+            resource["EntityJSON"] = copy.copy(image)
+            resource["CreationTime"] = datetime.now(timezone.utc).isoformat()
+            resource["Affiliation"] = "xsede.org"
+            resource["LocalID"] = image["id"]
+            resource["LocalURL"] = image["url"]
+            resource["Name"] = image["name"]
+            if len(image["description"]) < 500:
+                resource["ShortDescription"] = image["description"]
+                resource["Description"] = image["description"]
+            else:
+                resource["ShortDescription"] = image["description"].split('\n',2)[0]
+                resource["Description" ] = image["description"]
+            resource["Type"] = "Cloud Image"
+            resource["QualityLevel"] = "Production"
+            resource["ProviderID"] = "urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.providers:drupalnodeid:2939"
+            tag_keywords = ""
+            try:
+                delimiter = ""
+                for tag in image["tags"]:
+                    tag_keywords += delimiter+tag["name"]
+                    delimiter = " "
+            except:
+                tag_keywords = None
 
-           resource["Keywords"] = tag_keywords[:500]
-           if image["end_date"] != None:
-             enddate = datetime.fromtimestamp(id["end_date"])
-             validity_td = enddate - dt
-             print("validity time is ", validity_td.total_seconds())
-             resource["Validity"] = validity_td.total_seconds()
-           else:
-             resource["Validity"] = None
-           res_associations = []
-           associations = ""
-           for version in image["versions"]:
-             appenv = {}
-             appenv["AppName"] = image["name"]
-             appenv["AppVersion"] = version["name"]
-             appenv["Description"] = image["description"]
-             appenv["Name"] = image["name"]+"-"+version["name"]
-             appenv["ID"] = "urn:glue2:ApplicationEnvironment:"+appenv["Name"]
-             res_associations.append("ApplicationEnvironmentID:"+appenv["ID"])
-             appenvs.append(appenv)
-           try:
-             for assoc in res_associations:
-               associations += ","+assoc
-           except:
-               associations = None
-          #We're just not adding associations at present
-           #if len(associations) > 999:
-             #resource["Associations"] = "Too Many Associations"
-           #else:
-             #resource["Associations"] = associations
-           resource["Associations"] = ""
-             
-           resources.append(resource)
+            resource["Keywords"] = tag_keywords[:500]
+            if image["end_date"] != None:
+                enddate = datetime.fromtimestamp(id["end_date"])
+                validity_td = enddate - dt
+                print("validity time is ", validity_td.total_seconds())
+                resource["Validity"] = validity_td.total_seconds()
+            else:
+                resource["Validity"] = None
+            res_associations = []
+            associations = ""
+            for version in image["versions"]:
+                appenv = {}
+                appenv["AppName"] = image["name"]
+                appenv["AppVersion"] = version["name"]
+                appenv["Description"] = image["description"]
+                appenv["Name"] = image["name"]+"-"+version["name"]
+                appenv["ID"] = "urn:glue2:ApplicationEnvironment:"+appenv["Name"]
+                res_associations.append("ApplicationEnvironmentID:"+appenv["ID"])
+                appenvs.append(appenv)
+            try:
+                for assoc in res_associations:
+                    associations += ","+assoc
+            except:
+                associations = None
+            resource["Associations"] = ""
+
+            resources.append(resource)
+            
         content[localtype] = resources
         return(content)
 

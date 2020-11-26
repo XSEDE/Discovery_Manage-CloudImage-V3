@@ -1,9 +1,15 @@
+tag-0.3-20201126b JP
+  - Name files consistently route_cloudeimage_v3
+
 tag-0.3-20201126 JP
   - Standardize code and rename .rc -> .sh
+
 tag-0.2-20201105 JP
   - Exclude Imported Application
+  
 tag-0.2-20201028 JP
   - Improve Description as discussed with Jetstream folks
+
 tag-0.2-20201007 JP
 tag-0.2-20201006 JP
 tag-0.2-20200923 JP

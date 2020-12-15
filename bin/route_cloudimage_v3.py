@@ -29,6 +29,7 @@ import django
 django.setup()
 from django.forms.models import model_to_dict
 from django.utils.dateparse import parse_datetime
+from django_markup.markup import formatter
 from resource_v3.models import *
 from processing_status.process import ProcessingActivity
 
@@ -414,10 +415,12 @@ class HandleLoad():
                 
             try:
                 Description = item.get('Description','')
-                Description += '\nView this image in Jetstream Atmosphere: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID',''))
+                Description += '\nView this image on Jetstream Atmosphere: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID',''))
                 Description += '\nDiscover more images using Jetstream Atmosphere: https://use.jetstream-cloud.org/application/images/search'
                 Description += '\nJetstream Getting Started Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide'
                 Description += '\nIntroduction to Jetstream Workshop: https://cvw.cac.cornell.edu/jetstream/'
+#                if not bool(BeautifulSoup(Description, "html.parser").find()):      # Test for pre-existing HTML
+                NewDescription = formatter(Description, filter_name='restructuredtext')
                 resource = ResourceV3(
                             ID = myGLOBALURN,
                             Affiliation = self.Affiliation,
@@ -428,7 +431,7 @@ class HandleLoad():
                             Type = item.get('Type', None),
                             ShortDescription = item.get('ShortDescription', None),
                             ProviderID = myProviderID,
-                            Description = Description,
+                            Description = NewDescription,
                             Topics = item.get('topics', None),
                             Keywords = item.get('Keywords', None),
                             StartDateTime = item.get('StartDateTime', None),

@@ -1,3 +1,6 @@
+tag-0.3-20201223b JP
+  - Convert to Format_Description class developed for Discovery_Manage-Resource-V3
+
 tag-0.3-20201223 JP
   - Generate full Description and no ShortDescription
   - Improve related resources formatting using a list as suggested by Choonhan

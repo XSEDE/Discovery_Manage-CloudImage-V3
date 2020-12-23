@@ -52,6 +52,49 @@ def datetime_standardize(indate):
     else:
         return(indate)
 
+class Format_Description():
+#   Initialize a Description, smart append, and render it in html using django-markup
+    def __init__(self, initial=None):
+        self.markup_stream = io.StringIO()
+        # Docutils settings
+        self.markup_settings = {'warning_stream': self.markup_stream }
+        if initial is None:
+            self.value = None
+        else:
+            clean_initial = initial.rstrip()
+            if len(clean_initial) == 0:
+                self.value = None
+            else:
+                self.value = clean_initial
+    def append(self, value):
+        clean_value = value.rstrip()
+        if len(clean_value) > 0:
+            if self.value is None:
+                self.value = clean_value
+            else:
+                self.value += '\n{}'.format(clean_value)
+    def html(self, ID=None):
+        if self.value is None:
+            return(None)
+        output = formatter(self.value, filter_name='restructuredtext', settings_overrides=self.markup_settings)
+        warnings = self.markup_stream.getvalue()
+        if warnings:
+            logger = logging.getLogger('DaemonLog')
+            if ID:
+                logger.warning('markup warnings for ID: {}'.format(ID))
+            for line in warnings.splitlines():
+                logger.warning('markup: {}'.format(line))
+        return(output)
+#    def format_Description(self, input, ID):
+#        output = formatter(input, filter_name='restructuredtext', settings_overrides=self.markup_settings)
+#        warnings = self.markup_stream.getvalue()
+#        if warnings:
+#            if ID:
+#                self.logger.warning('markup warnings for ID: {}'.format(ID))
+#            for line in warnings.splitlines():
+#                self.logger.warning('markup: {}'.format(line))
+#        return(output)
+
 class HandleLoad():
     def __init__(self):
         parser = argparse.ArgumentParser(epilog='File SRC|DEST syntax: file:<file path and name')
@@ -422,20 +465,13 @@ class HandleLoad():
             new[myGLOBALURN] = local
                 
             try:
-                Description = item.get('Description','')
-                Description += '\nRelated Jetstream resources:'
-                Description += '\n\n- View this image in Atmosphere: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID',''))
-                Description += '\n\n- Atmosphere Image Search: https://use.jetstream-cloud.org/application/images/search'
-                Description += '\n\n- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide'
-                Description += '\n\n- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/'
+                Description = Format_Description(item.get('Description'))
+                Description.append('Related Jetstream resources:')
+                Description.append('\n- View this image in Atmosphere:) https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID','')))
+                Description.append('\n- Atmosphere Image Search: https://use.jetstream-cloud.org/application/images/search')
+                Description.append('\n- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide')
+                Description.append('\n- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/')
 #                if not bool(BeautifulSoup(Description, "html.parser").find()):      # Test for pre-existing HTML
-                NewDescription = formatter(Description, filter_name='restructuredtext',
-                    settings_overrides=self.markup_settings)
-                warnings = self.markup_stream.getvalue()
-                if warnings:
-                    self.logger.warning('markup on ID: {}'.format(myGLOBALURN))
-                    for line in warnings.splitlines():
-                        self.logger.warning('markup: {}'.format(line))
                 resource = ResourceV3(
                             ID = myGLOBALURN,
                             Affiliation = self.Affiliation,
@@ -446,7 +482,7 @@ class HandleLoad():
                             Type = item.get('Type', None),
                             ShortDescription = item.get('ShortDescription', None),
                             ProviderID = myProviderID,
-                            Description = NewDescription,
+                            Description = Description.html(ID=myGLOBALURN),
                             Topics = item.get('topics', None),
                             Keywords = item.get('Keywords', None),
                             StartDateTime = item.get('StartDateTime', None),

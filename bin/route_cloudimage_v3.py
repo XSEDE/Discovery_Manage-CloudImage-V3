@@ -8,6 +8,7 @@ import datetime
 from datetime import datetime, timezone, tzinfo, timedelta
 from hashlib import md5
 import http.client as httplib
+import io
 import json
 import logging
 import logging.handlers
@@ -102,6 +103,10 @@ class HandleLoad():
                                                                  backupCount = 999, utc = True)
         self.handler.setFormatter(self.formatter)
         self.logger.addHandler(self.handler)
+
+        # Docutils settings
+        self.markup_stream = io.StringIO()
+        self.markup_settings = {'warning_stream': self.markup_stream }
 
         # Verify arguments and parse compound arguments
         SOURCE_URL = getattr(self.args, 'src') or self.config.get('SOURCE_URL', None)
@@ -254,12 +259,15 @@ class HandleLoad():
             resource["LocalID"] = image["id"]
             resource["LocalURL"] = image["url"]
             resource["Name"] = image["name"]
-            if len(image["description"]) < 500:
-                resource["ShortDescription"] = image["description"]
-                resource["Description"] = image["description"]
-            else:
-                resource["ShortDescription"] = image["description"].split('\n',2)[0]
-                resource["Description" ] = image["description"]
+#           Replaced on 2020-12-23
+#            if len(image["description"]) < 500:
+#                resource["ShortDescription"] = image["description"]
+#                resource["Description"] = image["description"]
+#            else:
+#                resource["ShortDescription"] = image["description"].split('\n',2)[0]
+#                resource["Description" ] = image["description"]
+            resource["ShortDescription"] = None
+            resource["Description"] = image["description"]
             resource["Type"] = "Cloud Image"
             resource["QualityLevel"] = "Production"
             resource["ProviderID"] = "urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.providers:drupalnodeid:2939"
@@ -415,12 +423,19 @@ class HandleLoad():
                 
             try:
                 Description = item.get('Description','')
-                Description += '\nView this image on Jetstream Atmosphere: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID',''))
-                Description += '\nDiscover more images using Jetstream Atmosphere: https://use.jetstream-cloud.org/application/images/search'
-                Description += '\nJetstream Getting Started Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide'
-                Description += '\nIntroduction to Jetstream Workshop: https://cvw.cac.cornell.edu/jetstream/'
+                Description += '\nRelated Jetstream resources:'
+                Description += '\n\n- View this image in Atmosphere: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID',''))
+                Description += '\n\n- Atmosphere Image Search: https://use.jetstream-cloud.org/application/images/search'
+                Description += '\n\n- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide'
+                Description += '\n\n- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/'
 #                if not bool(BeautifulSoup(Description, "html.parser").find()):      # Test for pre-existing HTML
-                NewDescription = formatter(Description, filter_name='restructuredtext')
+                NewDescription = formatter(Description, filter_name='restructuredtext',
+                    settings_overrides=self.markup_settings)
+                warnings = self.markup_stream.getvalue()
+                if warnings:
+                    self.logger.warning('markup on ID: {}'.format(myGLOBALURN))
+                    for line in warnings.splitlines():
+                        self.logger.warning('markup: {}'.format(line))
                 resource = ResourceV3(
                             ID = myGLOBALURN,
                             Affiliation = self.Affiliation,

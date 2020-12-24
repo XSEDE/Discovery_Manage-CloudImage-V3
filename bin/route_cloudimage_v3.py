@@ -73,7 +73,7 @@ class Format_Description():
                 self.value = clean_value
             else:
                 self.value += '\n{}'.format(clean_value)
-    def html(self, ID=None):
+    def html(self, ID=None): # If an ID is provided, log it to record what resource had the warnings
         if self.value is None:
             return(None)
         output = formatter(self.value, filter_name='restructuredtext', settings_overrides=self.markup_settings)
@@ -242,7 +242,7 @@ class HandleLoad():
             
         signal.signal(signal.SIGINT, self.exit_signal)
         signal.signal(signal.SIGTERM, self.exit_signal)
-        self.logger.info('Starting program={} pid={}, uid={}({})'.format(os.path.basename(__file__), os.getpid(), os.geteuid(), pwd.getpwuid(os.geteuid()).pw_name))
+        self.logger.critical('Starting program={} pid={}, uid={}({})'.format(os.path.basename(__file__), os.getpid(), os.geteuid(), pwd.getpwuid(os.geteuid()).pw_name))
 
     def Connect_Source(self, urlparse): # TODO
         [host, port] = urlparse.netloc.split(':')
@@ -253,11 +253,12 @@ class HandleLoad():
         conn = psycopg2.connect(conn_string)
         # conn.cursor will return a cursor object, you can use this cursor to perform queries
         cursor = conn.cursor()
-        self.logger.info('Connected to PostgreSQL database {} as {}'.format(database, self.config['SOURCE_DBUSER']))
+        self.logger.critical('Connected to PostgreSQL database {} as {}'.format(database, self.config['SOURCE_DBUSER']))
         return(cursor)
  
     def Connect_Elastic(self):
         if 'ELASTIC_HOSTS' in self.config:
+            self.logger.critical('Warehouse elastichost={}'.format(self.config['ELASTIC_HOSTS']))
             self.ESEARCH = elasticsearch_dsl.connections.create_connection( \
                 hosts = self.config['ELASTIC_HOSTS'], \
                 connection_class = RequestsHttpConnection, \

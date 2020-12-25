@@ -62,10 +62,7 @@ class Format_Description():
             self.value = None
         else:
             clean_initial = initial.rstrip()
-            if len(clean_initial) == 0:
-                self.value = None
-            else:
-                self.value = clean_initial
+            self.value = clean_initial if len(clean_initial) > 0 else None
     def append(self, value):
         clean_value = value.rstrip()
         if len(clean_value) > 0:
@@ -85,15 +82,6 @@ class Format_Description():
             for line in warnings.splitlines():
                 logger.warning('markup: {}'.format(line))
         return(output)
-#    def format_Description(self, input, ID):
-#        output = formatter(input, filter_name='restructuredtext', settings_overrides=self.markup_settings)
-#        warnings = self.markup_stream.getvalue()
-#        if warnings:
-#            if ID:
-#                self.logger.warning('markup warnings for ID: {}'.format(ID))
-#            for line in warnings.splitlines():
-#                self.logger.warning('markup: {}'.format(line))
-#        return(output)
 
 class HandleLoad():
     def __init__(self):
@@ -467,9 +455,9 @@ class HandleLoad():
                 
             try:
                 Description = Format_Description(item.get('Description'))
-                Description.append('Related Jetstream resources:')
-                Description.append('\n- View this image in Atmosphere:) https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID','')))
-                Description.append('\n- Atmosphere Image Search: https://use.jetstream-cloud.org/application/images/search')
+                Description.append('\nRelated Jetstream resources:')
+                Description.append('\n- View in source catalog: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID','')))
+                Description.append('\n- Access source catalog: https://use.jetstream-cloud.org/application/images/search')
                 Description.append('\n- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide')
                 Description.append('\n- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/')
 #                if not bool(BeautifulSoup(Description, "html.parser").find()):      # Test for pre-existing HTML
@@ -507,7 +495,6 @@ class HandleLoad():
         self.PROCESSING_SECONDS[me] += (datetime.now(timezone.utc) - start_utc).total_seconds()
         self.log_target(me)
         return(True, '')
-
 
     def SaveDaemonLog(self, path):
         # Save daemon log file using timestamp only if it has anything unexpected in it
@@ -553,7 +540,6 @@ class HandleLoad():
                     sys.exit(1)
 
                 # Retrieve from SOURCE
-                #content = self.Read_SQL(CURSOR, stepconf['SRCURL'].path, stepconf['LOCALTYPE'])
                 content = self.Retrieve_CloudImages(stepconf['LOCALTYPE'], stepconf)
                 # Content does not have the expected results
                 if stepconf['LOCALTYPE'] not in content:

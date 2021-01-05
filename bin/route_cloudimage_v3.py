@@ -63,6 +63,8 @@ class Format_Description():
         else:
             clean_initial = initial.rstrip()
             self.value = clean_initial if len(clean_initial) > 0 else None
+    def blank_line(self): # Forced blank line used to start a markup list
+        self.value += '\n'
     def append(self, value):
         clean_value = value.rstrip()
         if len(clean_value) > 0:
@@ -455,11 +457,12 @@ class HandleLoad():
                 
             try:
                 Description = Format_Description(item.get('Description'))
-                Description.append('\nRelated Jetstream resources:')
-                Description.append('\n- View in source catalog: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID','')))
-                Description.append('\n- Access source catalog: https://use.jetstream-cloud.org/application/images/search')
-                Description.append('\n- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide')
-                Description.append('\n- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/')
+                Description.append('Related Jetstream resources:')
+                Description.blank_line()
+                Description.append('- View in source catalog: https://use.jetstream-cloud.org/application/images/{}'.format(item.get('LocalID','')))
+                Description.append('- Access source catalog: https://use.jetstream-cloud.org/application/images/search')
+                Description.append('- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide')
+                Description.append('- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/')
 #                if not bool(BeautifulSoup(Description, "html.parser").find()):      # Test for pre-existing HTML
                 resource = ResourceV3(
                             ID = myGLOBALURN,

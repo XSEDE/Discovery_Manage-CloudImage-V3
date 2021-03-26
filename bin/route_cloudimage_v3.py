@@ -53,29 +53,42 @@ def datetime_standardize(indate):
         return(indate)
 
 class Format_Description():
-#   Initialize a Description, smart append, and render it in html using django-markup
-    def __init__(self, initial=None):
+#   Initialize a Description that may be html or markup text
+#   Functions that append markup
+#   Finally convert everything to html using django-markup (don't convert initial if it's already html)
+    def __init__(self, value):
         self.markup_stream = io.StringIO()
-        # Docutils settings
-        self.markup_settings = {'warning_stream': self.markup_stream }
-        if initial is None:
-            self.value = None
-        else:
-            clean_initial = initial.rstrip()
-            self.value = clean_initial if len(clean_initial) > 0 else None
-    def blank_line(self): # Forced blank line used to start a markup list
-        self.value += '\n'
+        self.markup_settings = {'warning_stream': self.markup_stream } # Docutils settings
+        self.initial = None
+        self.added = None
+        if value is None:
+            return
+        clean_value = value.rstrip()
+        if len(clean_value) == 0:
+            return
+        self.initial = clean_value
     def append(self, value):
         clean_value = value.rstrip()
         if len(clean_value) > 0:
-            if self.value is None:
-                self.value = clean_value
+            if self.added is None:
+                self.added = clean_value
             else:
-                self.value += '\n{}'.format(clean_value)
+                self.added += '\n{0}'.format(clean_value)
+    def blank_line(self): # Forced blank line used to start a markup list
+        if self.initial or self.added:  # If we have something, prevents blank initial line
+            if self.added:
+                self.added += '\n'
+            else:
+                self.added = '\n'
     def html(self, ID=None): # If an ID is provided, log it to record what resource had the warnings
-        if self.value is None:
+        if self.initial is None and self.added is None:
             return(None)
-        output = formatter(self.value, filter_name='restructuredtext', settings_overrides=self.markup_settings)
+        initial_html = self.initial and self.initial[:1] == '<'
+        if initial_html:
+            formatin = '%%INITIAL%%{0}'.format(self.added)
+        else:
+            formatin = '{0}{1}'.format(self.initial or '', self.added)
+        formatout = formatter(formatin, filter_name='restructuredtext', settings_overrides=self.markup_settings)
         warnings = self.markup_stream.getvalue()
         if warnings:
             logger = logging.getLogger('DaemonLog')
@@ -83,6 +96,10 @@ class Format_Description():
                 logger.warning('markup warnings for ID: {}'.format(ID))
             for line in warnings.splitlines():
                 logger.warning('markup: {}'.format(line))
+        if initial_html:
+            output = formatout.replace('%%INITIAL%%', self.initial, 1)
+        else:
+            output = formatout
         return(output)
 
 class HandleLoad():
@@ -304,7 +321,7 @@ class HandleLoad():
             resource["Description"] = image["description"]
             resource["Type"] = "Cloud Image"
             resource["QualityLevel"] = "Production"
-            resource["ProviderID"] = "urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.providers:drupalnodeid:2939"
+            resource["ProviderID"] = 'urn:ogf:glue2:info.xsede.org:resource:rdr:resource.organizations:561'
             tag_keywords = ""
             try:
                 delimiter = ""
@@ -433,7 +450,7 @@ class HandleLoad():
             mySupportID = 'urn:ogf:glue2:info.xsede.org:resource:rsp:support.organizations:drupalnodeid:1553'
             myNEWRELATIONS[mySupportID] = 'Supported By'
             
-            myHostedID = 'urn:ogf:glue2:info.xsede.org:resource:rsp:hpc.resources:drupalnodeid:999'
+            myHostedID = 'urn:ogf:glue2:info.xsede.org:resource:rdr:resource.base:68'
             myNEWRELATIONS[myHostedID] = 'Hosted On'
                 
             try:

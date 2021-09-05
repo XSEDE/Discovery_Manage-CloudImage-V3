@@ -1,3 +1,6 @@
+tag-0.4-20210905b JP
+  - Switch to .objects.update_or_create for Drupal 3.0
+
 tag-0.4-20210905 JP
   - Switch to .objects.get_or_create for Drupal 3.0
 

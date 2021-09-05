@@ -402,11 +402,13 @@ class HandleLoad():
         for relatedID in newRELATIONS:
             try:
                 relationURN = ':'.join([myURN, md5(relatedID.encode('UTF-8')).hexdigest()])
-                relation, created = ResourceV3Relation.objects.get_or_create(
+                relation, created = ResourceV3Relation.objects.update_or_create(
                             ID = relationURN,
-                            FirstResourceID = myURN,
-                            SecondResourceID = relatedID,
-                            RelationType = newRELATIONS[relatedID],
+                            defaults = {
+                                'FirstResourceID': myURN,
+                                'SecondResourceID': relatedID,
+                                'RelationType': newRELATIONS[relatedID]
+                            },
                      )
                 relation.save()
             except Exception as e:
@@ -454,16 +456,18 @@ class HandleLoad():
             myNEWRELATIONS[myHostedID] = 'Hosted On'
                 
             try:
-                local, created = ResourceV3Local.objects.get_or_create(
+                local, created = ResourceV3Local.objects.update_or_create(
                             ID = myGLOBALURN,
-                            CreationTime = datetime.now(timezone.utc),
-                            Validity = self.DefaultValidity,
-                            Affiliation = self.Affiliation,
-                            LocalID = id_str,
-                            LocalType = contype,
-                            LocalURL = LocalURL,
-                            CatalogMetaURL = self.CATALOGURN_to_URL(config['CATALOGURN']),
-                            EntityJSON = item['EntityJSON'],
+                            defaults = {
+                                'CreationTime': datetime.now(timezone.utc),
+                                'Validity': self.DefaultValidity,
+                                'Affiliation': self.Affiliation,
+                                'LocalID': id_str,
+                                'LocalType': contype,
+                                'LocalURL': LocalURL,
+                                'CatalogMetaURL': self.CATALOGURN_to_URL(config['CATALOGURN']),
+                                'EntityJSON': item['EntityJSON']
+                            },
                     )
                 local.save()
             except Exception as e:
@@ -481,22 +485,24 @@ class HandleLoad():
                 Description.append('- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide')
                 Description.append('- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/')
 #                if not bool(BeautifulSoup(Description, "html.parser").find()):      # Test for pre-existing HTML
-                resource, created = ResourceV3.objects.get_or_create(
+                resource, created = ResourceV3.objects.update_or_create(
                             ID = myGLOBALURN,
-                            Affiliation = self.Affiliation,
-                            LocalID = id_str,
-                            QualityLevel = item.get('QualityLevel', None),
-                            Name = item.get('Name', None),
-                            ResourceGroup = myRESGROUP,
-                            Type = item.get('Type', None),
-                            ShortDescription = item.get('ShortDescription', None),
-                            ProviderID = myProviderID,
-                            Description = Description.html(ID=myGLOBALURN),
-                            Topics = item.get('topics', None),
-                            Keywords = item.get('Keywords', None),
-                            StartDateTime = item.get('StartDateTime', None),
-                            EndDateTime = item.get('EndDateTime', None),
-                            Audience = self.Affiliation,
+                            defaults = {
+                                'Affiliation': self.Affiliation,
+                                'LocalID': id_str,
+                                'QualityLevel': item.get('QualityLevel', None),
+                                'Name': item.get('Name', None),
+                                'ResourceGroup': myRESGROUP,
+                                'Type': item.get('Type', None),
+                                'ShortDescription': item.get('ShortDescription', None),
+                                'ProviderID': myProviderID,
+                                'Description': Description.html(ID=myGLOBALURN),
+                                'Topics': item.get('topics', None),
+                                'Keywords': item.get('Keywords', None),
+                                'StartDateTime': item.get('StartDateTime', None),
+                                'EndDateTime': item.get('EndDateTime', None),
+                                'Audience': self.Affiliation
+                            },
                     )
                 resource.save()
                 resource.indexing()

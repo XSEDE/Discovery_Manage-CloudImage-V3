@@ -402,7 +402,7 @@ class HandleLoad():
         for relatedID in newRELATIONS:
             try:
                 relationURN = ':'.join([myURN, md5(relatedID.encode('UTF-8')).hexdigest()])
-                relation = ResourceV3Relation(
+                relation, created = ResourceV3Relation.objects.get_or_create(
                             ID = relationURN,
                             FirstResourceID = myURN,
                             SecondResourceID = relatedID,
@@ -454,7 +454,7 @@ class HandleLoad():
             myNEWRELATIONS[myHostedID] = 'Hosted On'
                 
             try:
-                local = ResourceV3Local(
+                local, created = ResourceV3Local.objects.get_or_create(
                             ID = myGLOBALURN,
                             CreationTime = datetime.now(timezone.utc),
                             Validity = self.DefaultValidity,
@@ -481,7 +481,7 @@ class HandleLoad():
                 Description.append('- Quick Start Guide: https://wiki.jetstream-cloud.org/Quick+Start+Guide')
                 Description.append('- Introduction Workshop: https://cvw.cac.cornell.edu/jetstream/')
 #                if not bool(BeautifulSoup(Description, "html.parser").find()):      # Test for pre-existing HTML
-                resource = ResourceV3(
+                resource, created = ResourceV3.objects.get_or_create(
                             ID = myGLOBALURN,
                             Affiliation = self.Affiliation,
                             LocalID = id_str,

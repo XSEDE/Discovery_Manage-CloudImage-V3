@@ -1,3 +1,6 @@
+tag-0.4-20210905 JP
+  - Switch to .objects.get_or_create for Drupal 3.0
+
 tag-0.4-20210326 JP
   - Switch relations from RSP to RDR
   - Latest Format_Description
